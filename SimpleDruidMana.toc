@@ -1,7 +1,7 @@
-## Title: SimpleDruidMana
+## Title: SimpleDruidMana (vanilla)
 ## Interface: 11200
 ## Version: 0.6.0 (vanilla 0.1.0)
-## Notes: Shows manabar in bear/cat form (vanilla)
+## Notes: Shows manabar in bear/cat form
 ## Notes-zhCN: 在熊/猫形态时显示魔法值
 ## Author: Likesc
 SimpleDruidMana.xml
