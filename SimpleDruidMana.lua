@@ -121,16 +121,24 @@ function SimpleDruidMana_OnLoad(self)
 				self:Show()
 			end
 		elseif event == "SPELLCAST_STOP" then
-			tmana.timer = 5.
+			-- SPELLCAST_STOP is before than UNIT_DISPLAYPOWER when shapeshift
+			if UnitPowerType(UNIT_PLAYER) == POWERTYPE_MANA then
+				tmana.timer = 5.0
+			end
 		elseif event == "PLAYER_AURAS_CHANGED" or (event == "UNIT_INVENTORY_CHANGED" and arg1 == UNIT_PLAYER) then
 			RefreshValues()
 		elseif event == "PLAYER_LOGIN" then
 			-- Initialize
 			local frame = CreateFrame("GameTooltip")
-			frame:SetOwner(WorldFrame, "ANCHOR_NONE")
-			frame.costFontString = frame:CreateFontString()
-			frame:AddFontStrings(frame:CreateFontString(), frame:CreateFontString())
-			frame:AddFontStrings(frame.costFontString, frame:CreateFontString())
+			frame:SetOwner(self, "ANCHOR_NONE")
+			local notused = frame:CreateFontString()
+			frame.lefts = {}
+			for i = 1, 2 do
+				local font = frame:CreateFontString()
+				table.insert(frame.lefts, font)
+				frame:AddFontStrings(font, notused)
+			end
+			frame.costFontString = frame.lefts[2]
 			scantip = frame
 			-- Sync
 			SimpleDruidManaBarText:SetFontObject(PlayerFrameManaBarText:GetFontObject())
