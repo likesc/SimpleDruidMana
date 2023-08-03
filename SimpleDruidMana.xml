@@ -7,7 +7,7 @@
 		<Anchors>
 			<Anchor point="TOPLEFT">
 				<Offset>
-					<AbsDimension x="106" y="-63"/>
+					<AbsDimension x="106" y="-63.5"/>
 				</Offset>
 			</Anchor>
 		</Anchors>
@@ -35,7 +35,7 @@
 						</Anchor>
 					</Anchors>
 					<!-- left: 26.25, right: 150, top: 52, bottom: 65 -->
-					<TexCoords left="0.587890625" right="0.1044921875" top="0.41015625" bottom="0.51171875"/>
+					<TexCoords left="0.587890625" right="0.1044921875" top="0.41015625" bottom="0.51571875"/>
 				</Texture>
 				<FontString name="$parentText" inherits="TextStatusBarText" justifyH="CENTER">
 					<Anchors>
