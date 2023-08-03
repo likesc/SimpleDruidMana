@@ -1,20 +1,21 @@
 
 local UNIT_PLAYER = "player"
 local POWERTYPE_MANA = 0 -- Enum.PowerType.Mana
+local SPELL_INNERVATE = "Interface\\Icons\\Spell_Nature_Lightning"
 
-local dummyTooltip -- Hooked for GameTooltip:SetShapeshift
+local scantip -- Hooked for GameTooltip:SetShapeshift
 local tmana = {
 	["cur"] = -1,
 	["max"] = 0,
-	["sip"] = 0,
 	["stance"] = 0,
-	["mp5"] = 0,
+	["timer"] = 0.,
+	["reflection"] = 0, -- GetTalentInfo(3, 6)
 }
 local costCached = {0, 0, 0, 0, 0, 0, 0}
 local function GetShapeshiftCost(i)
 	if costCached[i] > 0 then return costCached[i] end
-	dummyTooltip:SetShapeshift(i)
-	local _, _, scost = string.find(dummyTooltip.costFontString:GetText() or "", "(%d+)")
+	scantip:SetShapeshift(i)
+	local _, _, scost = string.find(scantip.costFontString:GetText() or "", "(%d+)")
 	local cost = tonumber(scost or "0")
 	costCached[i] = cost
 	return cost
@@ -28,21 +29,14 @@ local function GetCurrentStance()
 	return 0
 end
 
--- TODO: Inaccurate mana
 local function ManaBarUpdate(onManaEvent)
 	local powerType = UnitPowerType(UNIT_PLAYER)
-	local base = floor(UnitStat(UNIT_PLAYER, 5) / 5) + 15
 	if powerType == POWERTYPE_MANA then
-		local cur = UnitMana(UNIT_PLAYER)
-		local max = UnitManaMax(UNIT_PLAYER)
-		if onManaEvent and tmana.cur > -1 then
-			local sip = cur - tmana.cur
-			tmana.sip = sip > base and sip or base
-			-- DEFAULT_CHAT_FRAME:AddMessage("mana-form sip : " .. sip .. ", base : " .. base)
-		end
-		tmana.cur = cur
-		tmana.max = max
+		-- local prev = tmana.cur
+		tmana.cur = UnitMana(UNIT_PLAYER)
+		tmana.max = UnitManaMax(UNIT_PLAYER)
 		tmana.stance = 0
+		-- DEFAULT_CHAT_FRAME:AddMessage("sip : " .. (tmana.cur - prev) .. ", base : " .. (floor(UnitStat(UNIT_PLAYER, 5) / 5) + 15))
 		return
 	end
 	-- Bear/Cat form
@@ -52,22 +46,31 @@ local function ManaBarUpdate(onManaEvent)
 		tmana.stance = stance
 		tmana.cur = tmana.cur - GetShapeshiftCost(stance)
 	elseif onManaEvent then
-		local sip = tmana.sip
-		if sip < base then
-			sip = base
-		elseif sip > base and tmana.mp5 > 0 then
-			sip = sip - base
+		local base = floor(UnitStat(UNIT_PLAYER, 5) / 5) + 15
+		-- detects "Innervate"
+		local i = 1
+		local regen, buff
+		repeat
+			buff = UnitBuff("player", i)
+			if buff == SPELL_INNERVATE then
+				regen = 5 * base
+				break
+			end
+			i = i + 1
+		until not buff
+		if not regen then
+			regen = tmana.timer > 0 and tmana.reflection or base
 		end
-		tmana.cur = min(tmana.cur + sip, tmana.max)
-		-- DEFAULT_CHAT_FRAME:AddMessage("form:1/3 sip : " .. sip .. ", base : " .. base .. ", tmana.sip : " .. tmana.sip)
+		-- TODO: tmana.mp5 = Mana Per 5 Seconds
+		tmana.cur = min(tmana.cur + regen, tmana.max)
 	end
 	SimpleDruidManaBar:SetValue(tmana.cur / tmana.max)
 	SimpleDruidManaBarText:SetText(tmana.cur)
 end
 
 local function OnUpdate()
-	if tmana.mp5 > 0 then
-		tmana.mp5 = tmana.mp5 - arg1
+	if tmana.timer > 0 then
+		tmana.timer = tmana.timer - arg1
 	end
 end
 
@@ -89,7 +92,7 @@ function SimpleDruidMana_OnLoad(self)
 		local event, arg1 = event, arg1
 		if event == "UNIT_MANA" and arg1 == UNIT_PLAYER then
 			ManaBarUpdate(true)
-		elseif event == "UNIT_DISPLAYPOWER" and arg1 == UNIT_PLAYER  then
+		elseif event == "UNIT_DISPLAYPOWER" and arg1 == UNIT_PLAYER then
 			local powerType = UnitPowerType(UNIT_PLAYER)
 			if powerType == POWERTYPE_MANA then
 				ManaBarUpdate(false)
@@ -97,8 +100,8 @@ function SimpleDruidMana_OnLoad(self)
 			else
 				self:Show()
 			end
-		elseif event == "SPELLCAST_STOP" then -- SPELLCAST_INTERRUPTED, SPELLCAST_FAILURE
-			tmana.mp5 = 5.
+		elseif event == "SPELLCAST_STOP" then
+			tmana.timer = 5.
 		elseif event == "PLAYER_LOGIN" then
 			-- Initialize
 			local frame = CreateFrame("GameTooltip")
@@ -106,10 +109,15 @@ function SimpleDruidMana_OnLoad(self)
 			frame.costFontString = frame:CreateFontString()
 			frame:AddFontStrings(frame:CreateFontString(), frame:CreateFontString())
 			frame:AddFontStrings(frame.costFontString, frame:CreateFontString())
-			dummyTooltip = frame
+			scantip = frame
 			-- Sync
 			SimpleDruidManaBarText:SetFont(PlayerFrameManaBarText:GetFont())
 			ManaBarUpdate(false)
+			-- Reflection
+			local _, _, _, _, rank = GetTalentInfo(3, 6) -- Talent : "Reflection"
+			if rank > 0 then
+				tmana.reflection = floor(rank * 0.05 * (UnitStat(UNIT_PLAYER, 5) / 5 + 15))
+			end
 		end
 	end)
 	self:SetScript("OnUpdate", OnUpdate)
