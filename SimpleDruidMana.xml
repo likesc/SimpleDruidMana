@@ -2,12 +2,12 @@
 ..\FrameXML\UI.xsd">
 	<Script file="SimpleDruidMana.lua"/>
 
-	<StatusBar name="SimpleDruidManaBar" parent="PlayerFrame" drawLayer="BORDER" hidden="true" frameLevel="5">
+	<StatusBar name="SimpleDruidManaBar" parent="PlayerFrame" hidden="true" frameLevel="2">
 		<Size x="119.2" y="12"/>
 		<Anchors>
 			<Anchor point="TOPLEFT">
 				<Offset>
-					<AbsDimension x="106" y="-63.5"/>
+					<AbsDimension x="106" y="-64"/>
 				</Offset>
 			</Anchor>
 		</Anchors>

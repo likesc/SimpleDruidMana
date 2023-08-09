@@ -31,7 +31,7 @@ local function GetCurrentStance()
 	return 0
 end
 
-local function RefreshValues()
+local function UpdateStates()
 	local powerType = UnitPowerType(UNIT_PLAYER)
 	if powerType == POWERTYPE_MANA then
 		return
@@ -45,7 +45,7 @@ local function RefreshValues()
 	tmana.innervate = false
 	local i, buff = 1
 	repeat
-		buff = UnitBuff("player", i)
+		buff = UnitBuff(UNIT_PLAYER, i)
 		if buff == SPELL_INNERVATE then
 			tmana.innervate = true
 			break
@@ -56,14 +56,14 @@ local function RefreshValues()
 	-- TODO detects Mana Per 5 Seconds from buffs
 end
 
-local function ManaBarUpdate(onManaEvent)
+local function UpdateManaBar(onevent)
 	local powerType = UnitPowerType(UNIT_PLAYER)
 	if powerType == POWERTYPE_MANA then
 		-- local prev = tmana.cur
 		tmana.cur = UnitMana(UNIT_PLAYER)
 		tmana.max = UnitManaMax(UNIT_PLAYER)
 		tmana.stance = 0
-		-- DEFAULT_CHAT_FRAME:AddMessage("sip : " .. (tmana.cur - prev) .. ", base : " .. (floor(UnitStat(UNIT_PLAYER, 5) / 5) + 15))
+		-- DEFAULT_CHAT_FRAME:AddMessage("sip : " .. (tmana.cur - prev) .. ", base : " .. tmana.base)
 		return
 	end
 	-- Bear/Cat form
@@ -72,7 +72,7 @@ local function ManaBarUpdate(onManaEvent)
 	if stance ~= tmana.stance then
 		tmana.stance = stance
 		tmana.cur = tmana.cur - GetShapeshiftCost(stance)
-	elseif onManaEvent then
+	elseif onevent then
 		local regen
 		if tmana.innervate then
 			regen = tmana.base * 5
@@ -111,22 +111,22 @@ function SimpleDruidMana_OnLoad(self)
 	self:SetScript("OnEvent", function()
 		local event, arg1 = event, arg1
 		if event == "UNIT_MANA" and arg1 == UNIT_PLAYER then
-			ManaBarUpdate(true)
+			UpdateManaBar(true)
 		elseif event == "UNIT_DISPLAYPOWER" and arg1 == UNIT_PLAYER then
 			local powerType = UnitPowerType(UNIT_PLAYER)
 			if powerType == POWERTYPE_MANA then
-				ManaBarUpdate(false)
+				UpdateManaBar(false)
 				self:Hide()
 			else
 				self:Show()
 			end
 		elseif event == "SPELLCAST_STOP" then
-			-- SPELLCAST_STOP is before than UNIT_DISPLAYPOWER when shapeshift
+			-- (SPELLCAST_STOP  >  UNIT_MANA/ENERGY  >  UNIT_DISPLAYPOWER > PLAYER_AURAS_CHANGED) when shapeshift
 			if UnitPowerType(UNIT_PLAYER) == POWERTYPE_MANA then
 				tmana.timer = 5.0
 			end
 		elseif event == "PLAYER_AURAS_CHANGED" or (event == "UNIT_INVENTORY_CHANGED" and arg1 == UNIT_PLAYER) then
-			RefreshValues()
+			UpdateStates()
 		elseif event == "PLAYER_LOGIN" then
 			-- Initialize
 			local frame = CreateFrame("GameTooltip")
@@ -143,7 +143,7 @@ function SimpleDruidMana_OnLoad(self)
 			-- Sync
 			SimpleDruidManaBarText:SetFontObject(PlayerFrameManaBarText:GetFontObject())
 			SimpleDruidManaBarText:SetFont(PlayerFrameManaBarText:GetFont())
-			ManaBarUpdate(false)
+			UpdateManaBar(false)
 		end
 	end)
 	self:SetScript("OnUpdate", OnUpdate)
