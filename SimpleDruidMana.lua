@@ -107,6 +107,7 @@ function SimpleDruidMana_OnLoad(self)
 	self:RegisterEvent("SPELLCAST_STOP")
 	self:RegisterEvent("PLAYER_AURAS_CHANGED")
 	self:RegisterEvent("UNIT_INVENTORY_CHANGED")
+	self:RegisterEvent("CHARACTER_POINTS_CHANGED")
 
 	self:SetScript("OnEvent", function()
 		local event, arg1 = event, arg1
@@ -127,6 +128,8 @@ function SimpleDruidMana_OnLoad(self)
 			end
 		elseif event == "PLAYER_AURAS_CHANGED" or (event == "UNIT_INVENTORY_CHANGED" and arg1 == UNIT_PLAYER) then
 			UpdateStates()
+		elseif event == "CHARACTER_POINTS_CHANGED" then -- (leveling up) or (learning a talent)
+			costCached = {0, 0, 0, 0, 0, 0, 0}
 		elseif event == "PLAYER_LOGIN" then
 			-- Initialize
 			local frame = CreateFrame("GameTooltip")
